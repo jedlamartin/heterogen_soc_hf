@@ -1,0 +1,4 @@
+.clang-format
+input.jpg
+output.jpg
+build/*

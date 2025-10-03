@@ -2,7 +2,7 @@
 CXX = aarch64-linux-gnu-g++
 
 # Pre-compiler and Compiler flags
-CXX_FLAGS := -march=native -Wall -Wextra -std=c++17 -O3 -ggdb -fopenmp
+CXX_FLAGS := -Wall -Wextra -std=c++17 -O3 -ggdb -fopenmp
 PRE_FLAGS := -MMD -MP
 
 # Project directory structure

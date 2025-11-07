@@ -195,10 +195,12 @@ void median2d_avx_uload(int32_t imgHeight,
                         uint8_t* imgDst) {
     #pragma omp parallel for
     for(int32_t row = 0; row < imgHeight; ++row) {
-      __m256i window[WIN_LENGTH * WIN_HEIGHT];
+        __m256i window[WIN_LENGTH * WIN_HEIGHT];
         for(int32_t col = 0; col < imgWidth * 3; col += 32) {
             // Load the window: 256 bit => 32 * uint8_t => 10 * rgb r g
+    #pragma GCC unroll WIN_HEIGHT
             for(uint32_t i = 0; i < WIN_HEIGHT; ++i) {
+    #pragma GCC unroll WIN_LENGTH
                 for(uint32_t j = 0; j < WIN_LENGTH; ++j) {
                     window[i * WIN_LENGTH + j] =
                         _mm256_loadu_si256(reinterpret_cast<const __m256i*>(

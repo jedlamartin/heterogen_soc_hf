@@ -106,11 +106,6 @@ struct ocl_data_t {
 	cl_program program = NULL;
 	cl_kernel kernel = NULL;
 
-	int buff_size_coeff;
-	cl_mem coeff_host_clmem;
-	cl_mem coeff_device_clmem;
-	void *coeff_host;
-
 	int buff_size_src;
 	cl_mem src_host_clmem;
 	cl_mem src_device_clmem;
@@ -215,13 +210,6 @@ int ocl_init(int ocl_dev)
 void ocl_map_buffers() {
 	cl_int ret;
 
-	ocl_data.coeff_host = clEnqueueMapBuffer(ocl_data.command_queue,
-			ocl_data.coeff_host_clmem, CL_TRUE, CL_MAP_WRITE, 0, ocl_data.buff_size_coeff,
-			0, NULL, NULL, &ret);
-	if (ret != CL_SUCCESS) {
-		printf("Error mapping coeff_host\n");
-	}
-
 	ocl_data.src_host = clEnqueueMapBuffer(ocl_data.command_queue,
 			ocl_data.src_host_clmem, CL_TRUE, CL_MAP_WRITE, 0, ocl_data.buff_size_src,
 			0, NULL, NULL, &ret);
@@ -244,16 +232,6 @@ void ocl_unmap_buffers(/*cl_event *event*/) {
 	/* Unmap source from host */
 	ret = clEnqueueUnmapMemObject(
 			ocl_data.command_queue,
-			ocl_data.coeff_device_clmem,
-			ocl_data.coeff_host,
-			0,
-			NULL,
-			NULL);
-	if (ret != CL_SUCCESS) {
-		printf("Error unmapping coeff_host\n");
-	}
-	ret = clEnqueueUnmapMemObject(
-			ocl_data.command_queue,
 			ocl_data.src_device_clmem,
 			ocl_data.src_host,
 			0,
@@ -274,15 +252,10 @@ void ocl_unmap_buffers(/*cl_event *event*/) {
 	}
 }
 
-int ocl_alloc_mem(int buff_size_coeff,
-		          int buff_size_src, uint8_t **ptr_src,
+int ocl_alloc_mem(int buff_size_src, uint8_t **ptr_src,
 				  int buff_size_dst, uint8_t **ptr_dst)
 {
 	cl_int ret;
-	ocl_data.coeff_host_clmem  = clCreateBuffer(ocl_data.context, CL_MEM_ALLOC_HOST_PTR | CL_MEM_READ_ONLY, buff_size_coeff, NULL, &ret);
-	if (ret != CL_SUCCESS) {
-		printf("Error allocating coeff_host_clmem\n");
-	}
 	ocl_data.src_host_clmem = clCreateBuffer(ocl_data.context, CL_MEM_ALLOC_HOST_PTR | CL_MEM_READ_ONLY, buff_size_src, NULL, &ret);
 	if (ret != CL_SUCCESS) {
 		printf("Error allocating src_host_clmem\n");
@@ -293,15 +266,10 @@ int ocl_alloc_mem(int buff_size_coeff,
 	}
 
 	if (ocl_data.shared_mem == CL_TRUE) {
-		ocl_data.coeff_device_clmem = ocl_data.coeff_host_clmem;
 		ocl_data.src_device_clmem = ocl_data.src_host_clmem;
 		ocl_data.dst_device_clmem = ocl_data.dst_host_clmem;
 	}
 	else {
-		ocl_data.coeff_device_clmem  = clCreateBuffer(ocl_data.context, CL_MEM_READ_ONLY, buff_size_coeff, NULL, &ret);
-		if (ret != CL_SUCCESS) {
-			printf("Error allocating coeff_device_clmem\n");
-		}
 		ocl_data.src_device_clmem = clCreateBuffer(ocl_data.context, CL_MEM_READ_ONLY, buff_size_src, NULL, &ret);
 		if (ret != CL_SUCCESS) {
 			printf("Error allocating src_device_clmem\n");
@@ -312,7 +280,6 @@ int ocl_alloc_mem(int buff_size_coeff,
 		}
 	}
 
-	ocl_data.buff_size_coeff = buff_size_coeff;
 	ocl_data.buff_size_src = buff_size_src;
 	ocl_data.buff_size_dst = buff_size_dst;
 
@@ -330,27 +297,9 @@ int ocl_alloc_mem(int buff_size_coeff,
 
 int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
               int imgHeight, int imgWidth, int imgWidthF,
-              int filter_w, int filter_h,
-              int8_t *filter_int8, float *filter_f,
 			  uint8_t **ptr_dst)
 {
 	cl_int ret;
-
-	if (strcmp(KERNEL_FUNCTION, "fir2d_kernel_sh_uchar_float")==0 ||
-		strcmp(KERNEL_FUNCTION, "fir2d_kernel_sh_float_float")==0 ||
-		strcmp(KERNEL_FUNCTION, "fir2d_kernel_sh_float_float_nbc")==0 ||
-		strcmp(KERNEL_FUNCTION, "fir2d_kernel_sh_float_float_nbc2")==0 ||
-		strcmp(KERNEL_FUNCTION, "fir2d_kernel_sh_float_float_nbc3")==0
-	) {
-		for (int i=0; i<filter_w*filter_h; i++) {
-			*((float*)(ocl_data.coeff_host) + i) = *(filter_f + i);
-		}
-	}
-	else {
-		for (int i=0; i<filter_w*filter_h; i++) {
-			*((int8_t*)(ocl_data.coeff_host) + i) = *(filter_int8 + i);
-		}
-	}
 
 	/* Load the source code containing the kernel */
 	size_t source_size;
@@ -408,15 +357,12 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 
 	ret = clSetKernelArg(ocl_data.kernel, 0, sizeof(int), &imgWidth);
 	ret = clSetKernelArg(ocl_data.kernel, 1, sizeof(int), &imgWidthF);
-	ret = clSetKernelArg(ocl_data.kernel, 2, sizeof(int), &filter_w);
-	ret = clSetKernelArg(ocl_data.kernel, 3, sizeof(int), &filter_h);
-	ret = clSetKernelArg(ocl_data.kernel, 4, sizeof(ocl_data.coeff_device_clmem), (void *)&ocl_data.coeff_device_clmem);
-	ret = clSetKernelArg(ocl_data.kernel, 5, sizeof(ocl_data.src_device_clmem), (void *)&ocl_data.src_device_clmem);
-	ret = clSetKernelArg(ocl_data.kernel, 6, sizeof(ocl_data.dst_device_clmem), (void *)&ocl_data.dst_device_clmem);
+	ret = clSetKernelArg(ocl_data.kernel, 2, sizeof(ocl_data.src_device_clmem), (void *)&ocl_data.src_device_clmem);
+	ret = clSetKernelArg(ocl_data.kernel, 3, sizeof(ocl_data.dst_device_clmem), (void *)&ocl_data.dst_device_clmem);
 
 	size_t local_size[3];
 	size_t global_size[3];
-	if (strcmp(KERNEL_FUNCTION, "fir2d_kernel_gl_16x")==0)
+	if (strcmp(KERNEL_FUNCTION, "median2d_kernel_gl_16x")==0)
 	{
 		local_size[0] = 16;
 		local_size[1] = 16;
@@ -427,7 +373,7 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 		global_size[2] = 1;
 
 	}
-	else if (strcmp(KERNEL_FUNCTION, "fir2d_kernel_sh_float_float_nbc")==0)
+	else if (strcmp(KERNEL_FUNCTION, "median2d_kernel_sh_float_float_nbc")==0)
 	{
 		local_size[0] = 32;
 		local_size[1] = 8;
@@ -436,7 +382,7 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 		global_size[1] = imgHeight;
 		global_size[2] = 1;
 	}
-	else if (strcmp(KERNEL_FUNCTION, "fir2d_kernel_sh_float_float_nbc2")==0)
+	else if (strcmp(KERNEL_FUNCTION, "median2d_kernel_sh_float_float_nbc2")==0)
 	{
 		local_size[0] = 32;
 		local_size[1] = 8;
@@ -445,7 +391,7 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 		global_size[1] = imgHeight;
 		global_size[2] = 1;
 	}
-	else if (strcmp(KERNEL_FUNCTION, "fir2d_kernel_sh_float_float_nbc3")==0)
+	else if (strcmp(KERNEL_FUNCTION, "median2d_kernel_sh_float_float_nbc3")==0)
 	{
 		local_size[0] = 32;
 		local_size[1] = 8;
@@ -454,7 +400,7 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 		global_size[1] = imgHeight/2;
 		global_size[2] = 1;
 	}
-	else if (strcmp(KERNEL_FUNCTION, "fir2d_kernel_sh_uchar_int_nbc3")==0)
+	else if (strcmp(KERNEL_FUNCTION, "median2d_kernel_sh_uchar_int_nbc3")==0)
 	{
 		local_size[0] = 32;
 		local_size[1] = 8;
@@ -477,8 +423,6 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 		ocl_unmap_buffers();
 	}
 	else {
-		ret = clEnqueueWriteBuffer(ocl_data.command_queue, ocl_data.coeff_device_clmem, CL_TRUE, 0,
-				ocl_data.buff_size_coeff, ocl_data.coeff_host, 0, NULL, NULL);
 		ret = clEnqueueWriteBuffer(ocl_data.command_queue, ocl_data.src_device_clmem, CL_TRUE, 0,
 				ocl_data.buff_size_src, ocl_data.src_host, 0, NULL, NULL);
 	}
@@ -532,12 +476,10 @@ int ocl_release()
 {
 	cl_int ret;
 
-	ret = clReleaseMemObject(ocl_data.coeff_device_clmem);
 	ret = clReleaseMemObject(ocl_data.src_device_clmem);
 	ret = clReleaseMemObject(ocl_data.dst_device_clmem);
 
 	if (ocl_data.shared_mem == CL_FALSE) {
-		clReleaseMemObject(ocl_data.coeff_host_clmem);
 		clReleaseMemObject(ocl_data.src_host_clmem);
 		clReleaseMemObject(ocl_data.dst_host_clmem);
 	}

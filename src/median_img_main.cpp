@@ -12,6 +12,7 @@
 #include <ctime>
 
 #include "timestamp.h"
+#include "median_img_ocl.h"
 
 #ifdef _MSC_VER
     #define memalign(a, s) _aligned_malloc((s), (a))
@@ -97,11 +98,9 @@ int main(int argc, char* argv[]) {
     int32_t imgFOfssetH = (5 - 1) / 2;
 
     /* Filter extended to N*16*/
-    int32_t buff_size_coeff = ((5 * 5 + 15) & ~0xF) * sizeof(float);
     int32_t buff_size_src = 3 * imgWidthF * imgHeightF * sizeof(uint8_t);
     int32_t buff_size_dst = 3 * imgWidth * imgHeight * sizeof(uint8_t);
-    printf("Buff size: %d, %d, %d\n",
-           buff_size_coeff,
+    printf("Buff size: %d, %d\n",
            buff_size_src,
            buff_size_dst);
 
@@ -112,7 +111,7 @@ int main(int argc, char* argv[]) {
     uint8_t* imgSrcExt;
     uint8_t* imgResOCL;
     ocl_alloc_mem(
-        buff_size_coeff, buff_size_src, &imgSrcExt, buff_size_dst, &imgResOCL);
+        buff_size_src, &imgSrcExt, buff_size_dst, &imgResOCL);
     printf("OCL memory allocation done %08lx %08lx\n",
            (uint64_t) (imgSrcExt),
            (uint64_t) (imgResOCL));
@@ -232,32 +231,24 @@ int main(int argc, char* argv[]) {
 #if 0
 	ocl_median2d_run("median2d_kernel_gl", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
-				  FILTER_W, FILTER_H,
-				  filter_laplace_int8, filter_laplace_f,
 				  &imgRes);
 #endif
 
 #if 0
 	ocl_median2d_run("median2d_kernel_gl_16x", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
-				  FILTER_W, FILTER_H,
-				  filter_laplace_int8, filter_laplace_f,
 				  &imgRes);
 #endif
 
 #if 0
 	ocl_median2d_run("median2d_kernel_sh_uchar_int", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
-				  FILTER_W, FILTER_H,
-				  filter_laplace_int8, filter_laplace_f,
 				  &imgRes);
 #endif
 
 #if 0
 	ocl_median2d_run("median2d_kernel_sh_uchar_float", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
-				  FILTER_W, FILTER_H,
-				  filter_laplace_int8, filter_laplace_f,
 				  &imgRes);
 #endif
 

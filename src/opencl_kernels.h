@@ -6,12 +6,9 @@
 
 static const std::string opencl_kernel_code =
 
-#include "fir2d_kernel_gl.cl"
-#include "fir2d_kernel_sh_uchar_int.cl"
-#include "fir2d_kernel_sh_uchar_float.cl"
-#include "fir2d_kernel_sh_float_float.cl"
-#include "fir2d_kernel_sh_float_float_nbc.cl"
-#include "fir2d_kernel_sh_uchar_int_nbc.cl"
+#include "median2d_kernel_gl.cl"
+#include "median2d_kernel_sh_uchar_int.cl"
+#include "median2d_kernel_sh_uchar_float.cl"
 ;
 
 

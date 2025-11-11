@@ -5,3 +5,4 @@ fir_img_vec
 median-img-cpu-amd64
 Makefile
 .vscode/*
+median_img_vec

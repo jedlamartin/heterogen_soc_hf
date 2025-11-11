@@ -166,7 +166,7 @@ int ocl_init(int ocl_dev)
 
 	/* Select device to be used */
 	if (ocl_dev==-1) {
-		printf("Select OpenCL device and press enter:");
+		printf("Select OpenCL device and press enter: ");
 		ocl_dev = getchar()-0x30;
 	}
 	if (ocl_dev<0 || ocl_dev>num_devices_all) {
@@ -196,8 +196,10 @@ int ocl_init(int ocl_dev)
 
 
 	/* Create Command Queue */
-	const cl_queue_properties properties[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
-	ocl_data.command_queue = clCreateCommandQueueWithProperties(ocl_data.context, ocl_data.device_id, properties, &ret);
+	// const cl_queue_properties properties[] = {CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0};
+	//ocl_data.command_queue = clCreateCommandQueueWithProperties(ocl_data.context, ocl_data.device_id, properties, &ret);
+	const cl_queue_properties properties = CL_QUEUE_PROFILING_ENABLE; 
+	ocl_data.command_queue = clCreateCommandQueue(ocl_data.context, ocl_data.device_id, properties, &ret);
 	if (ret != CL_SUCCESS) {
 		printf("OpenCL error clCreateCommandQueueWithProperties %s\n", getErrorString(ret));
 		clReleaseContext(ocl_data.context);

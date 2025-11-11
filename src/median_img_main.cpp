@@ -293,6 +293,6 @@ int main(int argc, char* argv[]) {
     ocl_release();
     memfree(imgRes);
 
-    printf("fir-img done.\n");
+    printf("median-img done.\n");
     return 0;
 }

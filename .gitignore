@@ -1,8 +1,8 @@
 .clang-format
 *.jpg
 build/*
-fir_img_vec
 median-img-cpu-amd64
 Makefile
 .vscode/*
 median_img_vec
+median_img_ocl

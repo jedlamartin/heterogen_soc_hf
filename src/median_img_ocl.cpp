@@ -201,7 +201,7 @@ int ocl_init(int ocl_dev)
 	const cl_queue_properties properties = CL_QUEUE_PROFILING_ENABLE; 
 	ocl_data.command_queue = clCreateCommandQueue(ocl_data.context, ocl_data.device_id, properties, &ret);
 	if (ret != CL_SUCCESS) {
-		printf("OpenCL error clCreateCommandQueueWithProperties %s\n", getErrorString(ret));
+		printf("OpenCL error clCreateCommandQueue %s\n", getErrorString(ret));
 		clReleaseContext(ocl_data.context);
 		return -1;
 	}
@@ -370,7 +370,6 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 		local_size[1] = 16;
 		local_size[2] = 1;
 		global_size[0] = (imgWidth * 3) / 16;
-		global_size[0] = (global_size[0] + local_size[0] - 1) & ~(local_size[0]-1);
 		global_size[1] = imgHeight;
 		global_size[2] = 1;
 
@@ -389,7 +388,7 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 		local_size[0] = 32;
 		local_size[1] = 8;
 		local_size[2] = 1;
-		global_size[0] = (imgWidth*3)/4;
+		global_size[0] = (imgWidth * 3) / 4;
 		global_size[1] = imgHeight;
 		global_size[2] = 1;
 	}
@@ -415,7 +414,7 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 		local_size[0] = 16;
 		local_size[1] = 16;
 		local_size[2] = 1;
-		global_size[0] = imgWidth;
+		global_size[0] = imgWidth * 3;
 		global_size[1] = imgHeight;
 		global_size[2] = 1;
 	}
@@ -429,7 +428,7 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 				ocl_data.buff_size_src, ocl_data.src_host, 0, NULL, NULL);
 	}
 
-	cl_event event_kernel[10000];
+	cl_event event_kernel[99999];
 	ts_start_k = get_ts_ns();
 	for (int run = 0; run < kernel_runs; run++)
 	{

@@ -228,28 +228,28 @@ int main(int argc, char* argv[]) {
     #endif
 #endif
 
-#if 0
+#if 1
 	ocl_median2d_run("median2d_kernel_gl", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
-				  &imgRes);
+				  &imgResOCL);
 #endif
 
-#if 0
+#if 1
 	ocl_median2d_run("median2d_kernel_gl_16x", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
-				  &imgRes);
+				  &imgResOCL);
 #endif
 
 #if 0
 	ocl_median2d_run("median2d_kernel_sh_uchar_int", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
-				  &imgRes);
+				  &imgResOCL);
 #endif
 
 #if 0
 	ocl_median2d_run("median2d_kernel_sh_uchar_float", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
-				  &imgRes);
+				  &imgResOCL);
 #endif
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

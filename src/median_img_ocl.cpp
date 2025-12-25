@@ -366,14 +366,22 @@ int ocl_median2d_run(char *KERNEL_FUNCTION, int kernel_runs,
 	size_t global_size[3];
 	if (strcmp(KERNEL_FUNCTION, "median2d_kernel_gl_16x")==0)
 	{
-		int num_vectors = (imgWidth * 3) / 16;
+		int num_vectors = (imgWidth * 3 + 16) / 16;
 		local_size[0] = 16;
 		local_size[1] = 16;
 		local_size[2] = 1;
-		global_size[0] = (num_vectors + 15) / 16 * 16;;
+		global_size[0] = (num_vectors + 15) / 16 * 16;
 		global_size[1] = imgHeight;
 		global_size[2] = 1;
 
+	} else if(strcmp(KERNEL_FUNCTION, "median2d_kernel_sh_uchar_int3")==0 || strcmp(KERNEL_FUNCTION, "median2d_kernel_sh_uchar_float3")==0){
+		int num_vectors = (imgWidth * 3 + 2) / 3;
+		local_size[0] = 16;
+		local_size[1] = 16;
+		local_size[2] = 1;
+		global_size[0] = (num_vectors + 15) / 16 * 16;
+		global_size[1] = imgHeight;
+		global_size[2] = 1;
 	} else {
 		local_size[0] = 16;
 		local_size[1] = 16;

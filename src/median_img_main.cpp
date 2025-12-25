@@ -252,6 +252,12 @@ int main(int argc, char* argv[]) {
 				  &imgResOCL);
 #endif
 
+#if 1
+	ocl_median2d_run("median2d_kernel_sh_uchar_int3", number_of_runs_kernel,
+	              imgHeight, imgWidth, imgWidthF,
+				  &imgResOCL);
+#endif
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Write output images
 

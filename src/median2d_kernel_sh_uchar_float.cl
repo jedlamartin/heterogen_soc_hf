@@ -194,7 +194,7 @@ __kernel void median2d_kernel_sh_uchar_float(
 	__local float data[20][20];
 
 	int rgb_offset = (get_group_id(1) * get_num_groups(0) + get_group_id(0)) % 3;
-	int wg_offset =  (get_group_id(1) * get_local_size(0) * imgWidthF * 3) + (get_group_id(0) / 3 * get_local_size(0) * 3 + rgb_offset);
+	int wg_offset =  (get_group_id(1) * get_local_size(1) * imgWidthF * 3) + (get_group_id(0) / 3 * get_local_size(0) * 3 + rgb_offset);
 	int loc_row = get_local_id(1);
 	int loc_col = get_local_id(0);
 

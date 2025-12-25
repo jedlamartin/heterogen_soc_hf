@@ -6,3 +6,4 @@ Makefile
 .vscode/*
 median_img_vec
 median_img_ocl
+reference

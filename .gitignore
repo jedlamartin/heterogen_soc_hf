@@ -1,6 +1,8 @@
 # Ignore Vitis HLS project folders
-proj_median/
-vivado_project/
+fpga_hls/proj_median/
+fpga_hls/vivado_project/
+
+cpu_opencl/build
 
 # Ignore log files
 *.log
@@ -12,3 +14,5 @@ vivado_project/
 Thumbs.db
 
 *dfx_runtime.txt*
+
+cpu

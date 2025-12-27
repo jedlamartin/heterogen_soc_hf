@@ -84,7 +84,7 @@ This repository uses Tcl scripts to automate the project recreation and build pr
 This step runs C-simulation, synthesizes the C++ code into RTL, and exports the IP core.
 ```bash
 cd fpga_hls
-vitis_hls -f scripts/run_hls.tcl
+vitis-run --mode hls --tcl scripts/run_hls.tcl
 ```
 *Output:* The generated IP will be located in `fpga_hls/proj_median/solution1/impl/ip`.
 

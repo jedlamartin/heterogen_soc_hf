@@ -1,4 +1,4 @@
-# Heterogeneous SoC Median Filter Implementation
+# heterogen_soc_hf
 
 This repository contains the implementation of a 5x5 Median Filter across heterogeneous computing platforms: CPU (Scalar & Vectorized), GPU (OpenCL), and FPGA (Vitis HLS). The project demonstrates performance optimization techniques including SIMD vectorization, memory tiling, and hardware pipelining.
 
@@ -14,7 +14,11 @@ heterogen_soc_hf/
 │   └── CMakeLists.txt      # Build configuration (Universal)
 │
 ├── fpga_hls/               # Task 3.4: Hardware Acceleration
-│   └── src/                # Synthesizable C++ code for Vitis HLS
+│   ├── src/                # Synthesizable HLS Source (median.cpp, types.h)
+│   ├── tb/                 # HLS Testbench (median_tb.cpp)
+│   ├── rtl/                # RTL Integration (hdmi_top.v, .edn netlists, wrappers)
+│   ├── xdc/                # Physical Constraints (hdmi_top.xdc, chipscope.xdc)
+│   └── scripts/            # Build automation (run_hls.tcl, run_vivado.tcl)
 │
 └── docs/                   # Documentation and reports
 ```
@@ -65,27 +69,35 @@ After building, the executable `host_app` (or `median_filter` depending on your 
 
 ## Part 2: FPGA HLS Implementation
 
-The `fpga_hls` folder contains the C++ source code for the streaming median filter hardware kernel.
+The `fpga_hls` folder contains the complete hardware design flow, including HLS C++ source code, testbenches, and Vivado integration scripts for the HDMI-based video pipeline.
 
 ### Source Code Location
-* **Hardware Kernel:** `fpga_hls/src/median2d_hw.cpp`
-* **Testbench:** `fpga_hls/src/tb_median2d.cpp`
+* **Hardware Kernel:** `fpga_hls/src/median.cpp`
+* **Testbench:** `fpga_hls/tb/median_tb.cpp`
 * **Headers:** `fpga_hls/src/types.h`
 
-### Building the Project (Vitis HLS)
+### Building the Project (Scripted Flow)
 
-Since this repository contains only the source files, you must create a new project to synthesize the IP.
+This repository uses Tcl scripts to automate the project recreation and build process. This ensures reproducibility without relying on absolute paths or large project files.
 
-1.  **Launch Vitis HLS.**
-2.  **Create a New Project:**
-    * Click "Create New Project" and specify the project name/location.
-3.  **Add Source Files:**
-    * Under **Design Files**, add `fpga_hls/src/median2d_hw.cpp`.
-    * Set the **Top Function** to `median2d_hw`.
-    * Under **Test Bench Files**, add `fpga_hls/src/tb_median2d.cpp`.
-4.  **Solution Configuration:**
-    * Select your target FPGA part (e.g., Zynq UltraScale+ or equivalent).
-    * Set the clock period (e.g., 10ns for 100MHz).
-    * Finish the setup.
-5.  **Run Synthesis:**
-    * Click the **C Synthesis** button (green play icon) to generate the RTL.
+**1. Run High-Level Synthesis (HLS)**
+This step runs C-simulation, synthesizes the C++ code into RTL, and exports the IP core.
+```bash
+cd fpga_hls
+vitis_hls -f scripts/run_hls.tcl
+```
+*Output:* The generated IP will be located in `fpga_hls/proj_median/solution1/impl/ip`.
+
+**2. Run Vivado Integration**
+This step creates the Vivado project, imports the HLS IP, links the RTL/Netlists, and applies constraints.
+```bash
+# From the fpga_hls directory
+vivado -mode batch -source scripts/run_vivado.tcl
+```
+*Output:* A fully configured Vivado project will be created in `fpga_hls/vivado_project`.
+
+**3. Open the Project (Optional)**
+To view the design or generate the bitstream manually:
+```bash
+vivado vivado_project/hdmi_median_proj.xpr
+```

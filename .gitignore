@@ -1,6 +1,6 @@
 # Ignore Vitis HLS project folders
 proj_median/
-solution1/
+vivado_project/
 
 # Ignore log files
 *.log
@@ -10,3 +10,5 @@ solution1/
 # Ignore OS files
 .DS_Store
 Thumbs.db
+
+*dfx_runtime.txt*

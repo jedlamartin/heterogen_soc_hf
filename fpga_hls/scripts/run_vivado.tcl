@@ -2,7 +2,7 @@
 
 # --- Configuration ---
 set project_name "hdmi_median_proj"
-set device_part "xc7k70tfbg484-1" 
+set device_part "xc7k70tfbg676-1" 
 # Point to where HLS generated the IP (adjust if your HLS output path differs)
 set hls_ip_path "./proj_median/solution1/impl/ip"
 
@@ -49,4 +49,5 @@ puts "---------------------------------------------"
 puts " Project Created Successfully!"
 puts " To open the GUI, run: start_gui"
 puts " Or open manually: vivado_project/$project_name.xpr"
+
 puts "---------------------------------------------"

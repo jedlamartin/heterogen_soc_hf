@@ -6,8 +6,8 @@ constexpr int BUF_L = 8192;
 constexpr int WIN_H = 5;
 constexpr int WIN_L = 5;
 
-// From report 200ns/50ns
-constexpr int PIXEL_DELAY = 4; 
+// From report 75ns/5ns
+constexpr int PIXEL_DELAY = 15; 
 
 
 inline void batcher5x5(uint8_ct* w);
@@ -106,11 +106,7 @@ void median2d_hw(uint8_ct* r_in, uint8_ct* g_in, uint8_ct* b_in, uint1_ct* hs_in
     *g_out = window_cpy[1][WIN_H * WIN_L / 2];
     *b_out = window_cpy[2][WIN_H * WIN_L / 2];
 
-#ifdef __SYNTHESIS__
-    *de_out = *de_in;
-    *hs_out = *hs_in;
-    *vs_out = *vs_in;
-#else
+
     // Delaying the control signals
     static uint1_ct de_dl[PIXEL_DELAY];
     static uint1_ct hs_dl[PIXEL_DELAY];
@@ -126,7 +122,6 @@ void median2d_hw(uint8_ct* r_in, uint8_ct* g_in, uint8_ct* b_in, uint1_ct* hs_in
         hs_dl[i] = (i == PIXEL_DELAY - 1) ? *hs_in : hs_dl[i + 1];
         vs_dl[i] = (i == PIXEL_DELAY - 1) ? *vs_in : vs_dl[i + 1];
     }
-#endif
 }
 
 inline void compare_swap(uint8_ct* window, int i, int j) {

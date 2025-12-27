@@ -2,23 +2,25 @@
 #include <vector>
 #include <algorithm>
 #include <iomanip>
+#include <deque> // Added for delay simulation
 #include "types.h"
 
 #define TEST_WIDTH  64
 #define TEST_HEIGHT 32
 
 // Hardware Latency parameters for 5x5 window
-// The center of a 5x5 window ending at current pixel is shifted by 2
-#define GROUP_DELAY_Y 2 
-#define GROUP_DELAY_X 2
 // The explicit delay you added in HW for signals
-#define SIGNAL_DELAY  4 
+constexpr int SIGNAL_DELAY = 15; 
+// Number of lines to skip at the start (Line buffer fill time for 5x5)
+constexpr int SKIP_LINES = 2;
 
+// Function Declaration
 void median2d_hw(uint8_ct* r_in, uint8_ct* g_in, uint8_ct* b_in, 
                  uint1_ct* hs_in, uint1_ct* vs_in, uint1_ct* de_in, 
                  uint8_ct* r_out, uint8_ct* g_out, uint8_ct* b_out, 
                  uint1_ct* hs_out, uint1_ct* vs_out, uint1_ct* de_out);
 
+// Software Reference
 uint8_t median_ref(const std::vector<uint8_t>& img, int x, int y, int w, int h) {
     std::vector<uint8_t> window;
     for (int wy = -2; wy <= 2; ++wy) {
@@ -40,26 +42,31 @@ int main() {
     std::vector<uint8_t> hw_result(num_pixels);
     std::vector<uint8_t> sw_result(num_pixels);
 
+    // 1. Generate Input Image
     std::cout << "[TestBench] Generating Input Image..." << std::endl;
-    for (int y = 0; y < TEST_HEIGHT; ++y) {
-        for (int x = 0; x < TEST_WIDTH; ++x) {
-            uint8_t val = (x * 4) % 256; 
-            if ((rand() % 20) == 0) val = (rand() % 2) ? 0 : 255; 
-            src_img[y * TEST_WIDTH + x] = val;
-        }
+    srand(123); // Fixed seed for reproducibility
+    for (int i = 0; i < num_pixels; ++i) {
+        uint8_t val = (i * 4) % 256; 
+        if ((rand() % 20) == 0) val = (rand() % 2) ? 0 : 255; // Add salt & pepper noise
+        src_img[i] = val;
     }
 
+    // 2. Hardware Simulation
     std::cout << "[TestBench] Running Hardware Simulation..." << std::endl;
-    uint8_ct r_in, g_in, b_in;
-    uint1_ct hs_in, vs_in, de_in;
+    uint8_ct r_in = 0, g_in = 0, b_in = 0;
+    uint1_ct hs_in = 0, vs_in = 0, de_in = 0;
     uint8_ct r_out, g_out, b_out;
     uint1_ct hs_out, vs_out, de_out;
+
+    // Queue to delay the C-simulation data to match the Control Signal Delay
+    std::deque<uint8_t> r_delay_q;
 
     // Run enough cycles to flush the pipeline
     int total_cycles = (TEST_WIDTH + 10) * (TEST_HEIGHT + 5); 
     int out_idx = 0; 
 
     for (int i = 0; i < total_cycles; ++i) {
+        // --- Input Generation ---
         int frame_x = i % (TEST_WIDTH + 10); 
         int frame_y = i / (TEST_WIDTH + 10);
         bool active_video = (frame_x < TEST_WIDTH) && (frame_y < TEST_HEIGHT);
@@ -72,15 +79,31 @@ int main() {
         }
         vs_in = (frame_y < TEST_HEIGHT) ? 1 : 0;
 
+        // --- IP Call ---
         median2d_hw(&r_in, &g_in, &b_in, &hs_in, &vs_in, &de_in,
                     &r_out, &g_out, &b_out, &hs_out, &vs_out, &de_out);
 
-        // Store result linearly based on valid output flag
+        // --- C-Sim Compensation Logic ---
+        
+        // 1. Push current "instant" result into the delay line
+        r_delay_q.push_back((uint8_t)r_out);
+
+        // 2. Pop the "aligned" result (from SIGNAL_DELAY cycles ago)
+        uint8_t r_aligned = 0;
+        if (r_delay_q.size() > SIGNAL_DELAY) {
+            r_aligned = r_delay_q.front();
+            r_delay_q.pop_front();
+        }
+
+        // 3. Capture result based on VALID signal
+        // Since de_out is delayed by the IP, and r_aligned is delayed by the queue,
+        // they are now perfectly synchronized.
         if (de_out == 1 && out_idx < num_pixels) {
-            hw_result[out_idx++] = (uint8_t)r_out;
+            hw_result[out_idx++] = r_aligned;
         }
     }
 
+    // 3. Software Reference Calculation
     std::cout << "[TestBench] Running Software Reference..." << std::endl;
     for (int y = 0; y < TEST_HEIGHT; ++y) {
         for (int x = 0; x < TEST_WIDTH; ++x) {
@@ -88,39 +111,39 @@ int main() {
         }
     }
 
+    // 4. Verify Results
     std::cout << "[TestBench] Verifying Results..." << std::endl;
     int errors = 0;
     
-    // START verification at y=2 because the first 2 lines of HW output 
-    // are garbage (median of empty buffer + first lines).
-    // STOP verification at H-2 because we run out of valid HW output data in this buffer capture.
-    for (int y = 2; y < TEST_HEIGHT - 2; ++y) {
-        for (int x = 2; x < TEST_WIDTH - 2; ++x) { 
+    // Group delay for 5x5 window (Center is at index 2)
+    const int GROUP_DELAY_X = 2;
+    const int GROUP_DELAY_Y = 2;
+
+    // We verify the "valid" center part of the image
+    // START: y = 2 because rows 0,1 outputs correspond to negative window coordinates (padding)
+    // STOP:  y < H-2 because the HW stream ends before flushing the very last pixels of the image
+    for (int y = GROUP_DELAY_Y; y < TEST_HEIGHT - GROUP_DELAY_Y; ++y) {
+        for (int x = GROUP_DELAY_X; x < TEST_WIDTH - GROUP_DELAY_X; ++x) { 
             
-            // Software Index: The pixel we want to verify
+            // 1. Software Index (The pixel we want to verify)
             int sw_idx = y * TEST_WIDTH + x;
 
-            // Hardware Index calculation:
-            // 1. To get the result for pixel (y,x), the HW needs input up to (y+2, x+2).
-            // 2. The HW output stream `hw_result` is captured starting from `de_out` high.
-            // 3. `de_out` is delayed by SIGNAL_DELAY (4) relative to input `de_in`.
-            // 4. Therefore, hw_result[0] corresponds to input pixel index `SIGNAL_DELAY`.
-            // Formula: HW_Index = (Input_Index_Needed) - SIGNAL_DELAY
-            
-            int input_row_needed = y + GROUP_DELAY_Y;
-            int input_col_needed = x + GROUP_DELAY_X;
-            int input_linear_idx = input_row_needed * TEST_WIDTH + input_col_needed;
-            
-            int hw_idx = input_linear_idx - SIGNAL_DELAY;
+            // 2. Hardware Index (Where this pixel is located in the output stream)
+            // The HW output for Center(x,y) appears when Input is at (y+2, x+2)
+            // Linear Index = (Row + DelayY) * Width + (Col + DelayX)
+            int hw_idx = (y + GROUP_DELAY_Y) * TEST_WIDTH + (x + GROUP_DELAY_X);
 
-            // Safety check
-            if (hw_idx < 0 || hw_idx >= num_pixels) continue;
+            // Boundary check: ensure we don't read past the captured HW buffer
+            if (hw_idx >= num_pixels) continue;
 
-            if (hw_result[hw_idx] != sw_result[sw_idx]) {
-                std::cout << "Error at SW(x=" << x << ", y=" << y << ") "
-                          << "vs HW(idx=" << hw_idx << ") -> "
-                          << "Exp: " << (int)sw_result[sw_idx] 
-                          << " Got: " << (int)hw_result[hw_idx] << std::endl;
+            uint8_t hw_val = hw_result[hw_idx];
+            uint8_t sw_val = sw_result[sw_idx];
+
+            if (hw_val != sw_val) {
+                std::cout << "Error at (x=" << x << ", y=" << y << ") "
+                          << "SW Idx: " << sw_idx << " HW Idx: " << hw_idx
+                          << " Exp: " << (int)sw_val 
+                          << " Got: " << (int)hw_val << std::endl;
                 errors++;
                 if(errors > 20) break;
             }

@@ -1,9 +1,12 @@
-.clang-format
-*.jpg
-build/*
-median-img-cpu-amd64
-Makefile
-.vscode/*
-median_img_vec
-median_img_ocl
-reference
+# Ignore Vitis HLS project folders
+proj_median/
+solution1/
+
+# Ignore log files
+*.log
+*.jou
+*.str
+
+# Ignore OS files
+.DS_Store
+Thumbs.db

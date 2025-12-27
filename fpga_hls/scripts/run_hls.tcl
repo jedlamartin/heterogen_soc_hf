@@ -18,7 +18,7 @@ open_solution "solution1" -flow_target vivado
 
 # 6. Define Part and Clock
 # Replace this with your specific FPGA part
-set_part {xc7k70tfbg484-1}
+set_part {xc7k70tfbg676-1}
 create_clock -period 5 -name default
 
 # 7. Directives (Optional)
@@ -39,4 +39,5 @@ cosim_design
 export_design -format ip_catalog
 
 # Exit
+
 exit

@@ -6,8 +6,8 @@ constexpr int BUF_L = 8192;
 constexpr int WIN_H = 5;
 constexpr int WIN_L = 5;
 
-// From report 75ns/5ns
-constexpr int PIXEL_DELAY = 15; 
+// 2
+constexpr int PIXEL_DELAY = WIN_L / 2; 
 
 
 inline void batcher5x5(uint8_ct* w);

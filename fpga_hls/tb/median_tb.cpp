@@ -9,8 +9,7 @@
 #define TEST_HEIGHT 32
 
 // Hardware Latency parameters for 5x5 window
-// The explicit delay you added in HW for signals
-constexpr int SIGNAL_DELAY = 15; 
+constexpr int SIGNAL_DELAY = 2; 
 // Number of lines to skip at the start (Line buffer fill time for 5x5)
 constexpr int SKIP_LINES = 2;
 

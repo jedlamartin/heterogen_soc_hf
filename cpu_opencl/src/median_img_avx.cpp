@@ -19,7 +19,8 @@ inline void compare_swap(__m256i* window, uint32_t i, uint32_t j) {
     window[j] = w_max;
 }
 
-void batcher_sort_5x5(__m256i* w) {
+__attribute__((always_inline))
+inline void batcher_sort_5x5(__m256i* w) {
     // p = 1
     // k = 1
     compare_swap(w, 0, 1);

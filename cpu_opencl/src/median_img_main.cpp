@@ -10,6 +10,7 @@
 
 #include <chrono>
 #include <ctime>
+#include <string>
 
 #include "timestamp.h"
 #include "median_img_ocl.h"
@@ -241,6 +242,12 @@ int main(int argc, char* argv[]) {
 #endif
 
 #if 1
+	ocl_median2d_run("median2d_kernel_sh_uchar_uchar", number_of_runs_kernel,
+	              imgHeight, imgWidth, imgWidthF,
+				  &imgResOCL);
+#endif
+
+#if 1
 	ocl_median2d_run("median2d_kernel_sh_uchar_int", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
 				  &imgResOCL);
@@ -253,29 +260,24 @@ int main(int argc, char* argv[]) {
 #endif
 
 #if 1
-	ocl_median2d_run("median2d_kernel_sh_uchar_int3", number_of_runs_kernel,
+	ocl_median2d_run("median2d_kernel_sh_uchar_uchar3", number_of_runs_kernel,
 	              imgHeight, imgWidth, imgWidthF,
 				  &imgResOCL);
 #endif
 
-#if 1
-	ocl_median2d_run("median2d_kernel_sh_uchar_float3", number_of_runs_kernel,
-	              imgHeight, imgWidth, imgWidthF,
-				  &imgResOCL);
-#endif
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Write output images
 
-#if 0
+#if 1
     // Write output image vector
     for(row = 0; row < imgHeight; row++) {
         for(col = 0; col < imgWidth; col++) {
             int pixel_src = (row * imgWidth + col) * 3;
             int pixel_dst = (row * imgWidth + col) * 3;
-            *(imgData + pixel_dst + 0) = (ILubyte) (*(imgResOCL + pixel_src + 0));
-            *(imgData + pixel_dst + 1) = (ILubyte) (*(imgResOCL + pixel_src + 1));
-            *(imgData + pixel_dst + 2) = (ILubyte) (*(imgResOCL + pixel_src + 2));
+            *(imgData + pixel_dst + 0) = (ILubyte) (*(imgRes + pixel_src + 0));
+            *(imgData + pixel_dst + 1) = (ILubyte) (*(imgRes + pixel_src + 1));
+            *(imgData + pixel_dst + 2) = (ILubyte) (*(imgRes + pixel_src + 2));
         }
     }
 #endif
@@ -298,7 +300,12 @@ int main(int argc, char* argv[]) {
 
     ret = ilSetData(imgData);
     ilEnable(IL_FILE_OVERWRITE);
-    ilSaveImage((ILconst_string) (argv[2]));
+    std::string out_filename = std::string(argv[2]);
+    std::string out_filename_cpu = out_filename.substr(0, out_filename.find_last_of('.')) + "_cpu" + out_filename.substr(out_filename.find_last_of('.'));
+    std::string out_filename_ocl = out_filename.substr(0, out_filename.find_last_of('.')) + "_ocl" + out_filename.substr(out_filename.find_last_of('.'));
+    
+    ilSaveImage((ILconst_string) (out_filename_cpu.c_str()));
+    ilSaveImage((ILconst_string) (out_filename_ocl.c_str()));
 
     ilDeleteImages(1, &ilImg);
 
